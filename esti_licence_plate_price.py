@@ -2,7 +2,12 @@
 #-*- coding:utf-8 -*-
 
 import numpy as np
+import sys
+import argparse
 #import sklearn
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 valid_auction_num_history = [5599,28093,29718,24334,18208,15058,13983,14082,14049,13414,13615,14198,28158,30286,23502,17959,13856,32774,27769,28838,20804,15774,12822,14723]
 
@@ -16,18 +21,6 @@ average_transaction_price_history = [71143,44954,59832,71967,71845,63756,57802,5
 
 transaction_volume_history = [2934,3366,2958,2948,2955,2976,2967,2944,2944,2943,2951,2956,2934,2947,2943,2951,2951,16188,9757,9570,2963,2943,2950,2965]
 
-
-auction_num = 32312   # 参与竞拍的人数
-valid_auction_num = 25761    #竞拍的有效人数
-transaction_volume = 5868     #指标个数
-
-#average_price = 20856
-average_price = 22000      # 估计竞拍的平均价格
-
-lowest_transaction_price = 32000  # 最低成交价格
-lowest_price_num = 302  # 最低报价人数
-
-#lowest_transaction_proce_history # 历史最低成交价
 
 
 def frange(start, stop, step):
@@ -69,19 +62,45 @@ def esti_avg_price(fi, average_price, valid_auction_num, transaction_volume):
 	price = sorted_normals[transaction_volume]
 	return price
 
-def main():
-	# test
-	price = esti_avg_price(20000, average_price, valid_auction_num, transaction_volume)
-	print(price)
+def test():
+	# 202001期
+	valid_auction_num = 25761    #竞拍的有效人数
+	transaction_volume = 5868     #指标个数
+	average_price = 22000      # 估计竞拍的平均价格
+	avg_transaction_price = 34721  # 平均成交价格
+
+	# fi 取最近两期的平均值
+	price = esti_avg_price(17500, average_price, valid_auction_num, transaction_volume)
+	print("esti price : {0},  transaction avg price : {1}".format(price, avg_transaction_price))
+
+def plot(fi_results):
+	x = np.linspace(0, len(fi_results), len(fi_results))
+	plt.plot(x, fi_results, ls="-", lw=2, label="fi")
+	plt.legend()
+	plt.show()
+
+def main(args):
+	if args.b_test:
+		test()
+		return
 
 	# train
 	n = min(len(valid_auction_num_history), len(average_price_history), len(average_transaction_price_history), len(transaction_volume_history))
 	print(n)
+	fi_results=[]
 	for i in range(n):
 		fi_array = get_esti_fi(average_price_history[i])
 		fi, loss = get_loss(fi_array, average_price_history[i], valid_auction_num_history[i], transaction_volume_history[i], average_transaction_price_history[i])
-		print(i, fi, loss)
+		print("no:{0}, fi:{1}, loss:{2}, percent:{3}".format(i+1, fi, loss, float(transaction_volume_history[i])/valid_auction_num_history[i]))
+		fi_results.append(fi)
+	plot(fi_results)
 
+
+def parse_arguments(argv):
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--b_test", action='store_true')
+
+	return parser.parse_args(argv)
 
 if __name__ == '__main__':
-	main()
+	main(parse_arguments(sys.argv[1:]))
